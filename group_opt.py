@@ -164,12 +164,16 @@ def new_group_Z(Z, combinations):
         new_Z[:,index,:] = np.sum(Z[:,combination,:], axis=1)
     return np.unique(new_Z, axis=0)
     
-def new_group_matrix(group_matrix, combinations):
+def new_group_matrix(group_matrix, combinations, group_type = 'age_groups'):
     new_gm = np.zeros((group_matrix.shape[0], len(combinations)), dtype = int)
     new_names = []
     for index, combination in enumerate(combinations):
         new_gm[:,index] = new_group_votes(group_matrix, combination)
-        new_names.append(new_age_group_name(combination)) # cambiar si hay otra estructura de nombres
+        if group_type == 'age_groups':
+            new_names.append(new_age_group_name(combination)) # cambiar si hay otra estructura de nombres
+        if group_type == 'age_sex_groups':
+            new_names.append(new_group_name(combination))
+
     return new_gm, new_names
 
 
