@@ -14,6 +14,27 @@ from EM_mult import EM_mult, compute_q_multinomial
 from EM_mvn_cdf import EM_mvn_cdf, compute_q_mvn_cdf
 from EM_algorithm import EM_algorithm, get_p_est
 
+"""
+This script runs Expectation-Maximization (EM) algorithms with user-defined parameters.
+
+Usage:
+    python3 EM_cluster.py <method_name> <J> <M> <G> <I> <lambda_> <seed_instance> <seed_pinit>
+
+Arguments:
+    - method_name: EM method ('full', 'simulate_100', 'simulate_1000', 'cdf', 'pdf', 'mult').
+    - J, M, G, I: Parameters for election instance: number of voters per ballot-box, number of ballot-boxes, number of groups, number of candidates.
+    - lambda_: Mixing parameter
+    - seed_instance: Seed for generating instances.
+    - seed_pinit: Seed for initializing probabilities (-1 for default initialization).
+
+Example:
+    python3 <script_name>.py simulate_100 10 5 3 20 0.05 12345 67890
+
+Description:
+    Generates instances, runs the chosen EM method, and saves results in the 'results' folder.
+"""
+
+
 verbose = True
 load_bar = True
 convergence_value = 0.001
@@ -33,89 +54,12 @@ EM_methods_dic = {'full': full, 'simulate_100': simulate_100,
                 'cdf': cdf, 'pdf': pdf, 'mult': mult}
 
 
-# EM_methods = [full, simulate_100, simulate_1000, cdf, pdf, mult]
-# with_replace_str = "_with_replace"
-# EM_method_names = ["full", f"simulate_100{(not HR_unique)*with_replace_str}", f"simulate_1000{(not HR_unique)*with_replace_str}", "cdf", "pdf", "mult"]
-# convergence_values = [0.001, 0.0001]
-# convergence_names = ['1000', '10000']
-# convergence_value = 0.001
-
-### MAIN EXPERIMENT
-J_list = [100] # personas
-M_list = [50] # mesas
-G_list = [2,3,4] # grupos
-I_list = [2,3,4,5,10] # candidatos 
-lambda_list = [0.5]
-seed_list = [i+1 for i in range(20)]
-pinit_list = [-1 for i in range(20)]
-###
-
-### CONVERGENCE EXPERIMENT
-# J_list = [100] # personas
-# M_list = [50] # mesas
-# G_list = [2,3] # grupos
-# I_list = [2,3] # candidatos
-# lambda_list = [0.5]
-# seed_list = [1 for i in range(20)]
-# pinit_list = [i+1 for i in range(20)]
-###
-
-### LAMBDA EXPERIMENT
-# J_list = [100] # personas
-# M_list = [50] # mesas
-# G_list = [2,3] # grupos
-# I_list = [2,3] # candidatos
-# lambda_list = [0.05*i for i in range(0,21)] # as percentage
-# seed_list = [i for i in range(20)]
-# pinit_list = [-1 for i in range(20)]
-###
-
-
-
-instances = []
-
-n_instances = len(J_list)*len(M_list)*len(G_list)*len(I_list)*len(seed_list)
-
-for j in J_list:
-    for m in M_list:
-        for g in G_list:
-            for i in I_list:
-                for lambda_ in lambda_list:
-                    for seed_instance in seed_list:
-                        instances.append((j,m,g,i,lambda_, seed_instance))
-
-# function that gets the number of the instance
-def get_instance_number(J, M, G, I, lambda_, seed):
-    for i, instance in enumerate(instances):
-        if instance == (J, M, G, I, lambda_, seed):
-            return i
-    return -1
-
-# function that prints the run command for the instance
-def print_run_instances():
-    # create a txt file
-    with open('run_instances.txt', 'w') as f:        
-        for method in range(5, -1, -1):
-            # print()
-            f.write(f'\n')
-            for J in J_list:
-                for M in M_list:
-                    for G in G_list:
-                        f.write(f'\n')
-                        for I in I_list:
-                            for lambda_ in lambda_list:
-                                for seed in seed_list:
-                                    # print(f'# python3 EM_cluster.py {method:d} {J:d} {M:d} {G:d} {I:d} {lambda_:.1f} {seed:d}')
-                                    f.write(f'python3 EM_cluster.py {method:d} {J:d} {M:d} {G:d} {I:d} {lambda_:.1f} {seed:d}\n')
-    f.close()
-# get_instance_number(100, 50, 2, 5, 0.5, 1)
-
 if __name__ == '__main__':
     # print_run_instances()
     # exit()
     if python_arg:
+        # read parameters from argv
         method_name = sys.argv[1]
-        # instance_number = int(sys.argv[2])
         J = int(sys.argv[2])
         M = int(sys.argv[3])
         G = int(sys.argv[4])
@@ -124,35 +68,15 @@ if __name__ == '__main__':
         seed_instance = int(sys.argv[7])
         seed_pinit = int(sys.argv[8])
 
-
-        # convergence_value_number = int(sys.argv[3])
-        # assert (method_number < len(EM_methods)) and (method_number >= 0), f'Method does not exist, should be int between 0 and {len(EM_methods)-1}' 
-        # check that G is an integer greater or equal than 1
-        # assert (G >= 1), f'G should be an integer greater or equal than 1'
-        # check that I is an integer greater or equal than 1
-        # assert (I >= 1), f'I should be an integer greater or equal than 1'
-        #assert (convergence_value_number < len(convergence_values)) and (convergence_value_number >= 0), f'Convergence value does not exist, should be int between 0 and {len(convergence_values)-1}'
-        # assert (instance_number < len(instances)) and (instance_number >= 0), f'Instance does not exist, should be int between 0 and {len(instances)-1}'
-        # J, M, G, I, lambda_, seed = instances[instance_number]
-        # method_name = EM_method_names[method_number]
         EM_method = EM_methods_dic[method_name]
-        # convergence_value = convergence_values[convergence_value_number]
-        # method_name = EM_method_names[method_number] + '_cv' + convergence_names[convergence_value_number]
+
         method_name = method_name + '_cv' + str(int(1/convergence_value))
         
     print('-'*70)
-    # print('instancia ',instance_number,': ',f"J = {J}, M = {M}, G = {G}, I = {I}, lambda = {int(100*lambda_)}%, seed = {seed}")
     print(f"J = {J}, M = {M}, G = {G}, I = {I}, lambda = {int(100*lambda_)}%, seed_instance = {seed_instance}, seed_pinit = {seed_pinit}")
     print('método ',method_name)
     print('-'*70)
-    # # generate folder for method if it doesn't exist
-    # method_folder = f"results/{method_name}"
-    # if not os.path.exists(method_folder):
-    #     os.makedirs(method_folder)
-    # # generate folder for instance if it doesn't exist
-    # instance_folder = f"{method_folder}/J{J}_M{M}_G{G}_I{I}_lambda{lambda_}"
-    # if not os.path.exists(instance_folder):
-    #     os.makedirs(instance_folder)
+
 
     # generate folder for instance if it doesn't exist
     instance_folder = f"results/J{J}_M{M}_G{G}_I{I}_lambda{int(100*lambda_)}"
@@ -202,22 +126,7 @@ if __name__ == '__main__':
         dict_file_name += f"_pinit{seed_pinit}"
     dict_file_name += ".pickle"
 
-
-    # if (I > 3) and (method_number == 0):
-    #     print(f"The code has been aborted since: method_name = {method_name} and I = {I}")
-    #     exit()
-        
     # run EM
     results = EM_method(X, b, dict_results, dict_file = dict_file_name,
                          p_est = p_est_start)
 
-# for j in range(5, -1, -1):
-#     print()
-#     for i in range(0, 240):
-#         print(f'# python3 EM_cluster.py {j:d} {i:d} 0')
-
-
-# /opt/homebrew/bin/python3.9 EM_cluster.py 2 0 0
-# /opt/homebrew/bin/python3.9 EM_cluster.py 5 0 0
-# python3 EM_cluster.py method_number J M G I lambda_ seed
-# python3 EM_cluster.py 5 100 50 2 2 0.5 1
