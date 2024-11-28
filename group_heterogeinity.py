@@ -161,7 +161,7 @@ def plot_chi_square_pvalues(df_p_val):
     # plt.xticks(x, [str(i) for i in x])
     plt.xticks(x)
     # save plot on hardrive as pdf
-    plt.savefig("2021_11_Presidencial/output/2021_11_Presidencial_GROUPS_HET_P_VAL.pdf")
+    plt.savefig("images/2021_11_Presidencial_GROUPS_HET_P_VAL.pdf")
     plt.show()
 
     plt.figure()
@@ -173,7 +173,7 @@ def plot_chi_square_pvalues(df_p_val):
     plt.gca().set_yticklabels(['{:.0f}%'.format(x) for x in plt.gca().get_yticks()])  # Format y-axis as percentage
     # plt.xticks(x, [str(i) for i in x])
     plt.xticks(x)
-    plt.savefig("2021_11_Presidencial/output/2021_11_Presidencial_GROUPS_HET_P_VAL_2.pdf")
+    plt.savefig("images/2021_11_Presidencial_GROUPS_HET_P_VAL_2.pdf")
     plt.show()
     
     
