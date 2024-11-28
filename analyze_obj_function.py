@@ -51,7 +51,7 @@ def run_combinations(n_combs=50, output_file='combinations_results.csv', seed=12
 
     # Save the results to a CSV file
     results_df = pd.DataFrame.from_dict(results_dict, orient='index')
-    os.makedirs('combinations', exist_ok=True)
+    os.makedirs('2021_11_Presidencial/combinations', exist_ok=True)
     results_df.to_csv(os.path.join('combinations',output_file), index=False)
     print(f'Results saved to {output_file}')
 
@@ -69,7 +69,7 @@ def plot_correlations(input_file='combinations_results.csv', obj_func = 'obj_fun
     correlations = df.groupby(['A', 'circ']).apply(lambda group: group[obj_func].corr(group['log_likelihood']))
     correlations = correlations.reset_index(name='correlation')
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(7, 4))
     sns.boxplot(data=correlations, x='A', y='correlation', color='skyblue',
                 linecolor='black', linewidth=1.2, width=0.5)
     plt.xlabel('Number of groups ($A$)')
@@ -80,9 +80,10 @@ def plot_correlations(input_file='combinations_results.csv', obj_func = 'obj_fun
     print(f'Saved plot: {output_path}')
     plt.show()
 
-
+  git config --global user.email "you@example.com"
+  git config --global user.name "Your Name"
 
 if __name__ == '__main__':
-    #run_combinations(n_combs=2)
-    plot_correlations(input_file='2021_11_Presidencial/combinations/all_combinations_50.csv', 
+    run_combinations(n_combs=50)
+    plot_correlations(input_file='2021_11_Presidencial/combinations/combinations_results.csv', 
                     obj_func='obj_func_prop', output_dir='images') ## obj function selected (can choose other options)
