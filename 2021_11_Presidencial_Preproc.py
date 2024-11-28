@@ -5,12 +5,12 @@ import time
 import numpy as np
 import os   
 from unidecode import unidecode
-from natsort import natsorted # ordenar por número
+from natsort import natsorted 
 import re
 
 import sys
 from p_val_mult import compute_pvalue_pickle
-# from pvalues_voting_main.p_val_mult_C import compute_pvalue_pickle_C # C function not implemented yet
+
 
 from EM_mult import EM_mult
 from group_opt import new_group_matrix, optimze_age_groups_v2, group_election_routine
@@ -20,7 +20,7 @@ verbose = True # print outputs
 
 # function that preprocess the data
 def pre_process_EM(election_name, groups = ""):
-    # llave mesa normalizada
+    # normalized key
     llave_mesa = ['REGION', 'CIRCUNSCRIPCION ELECTORAL', 'LOCAL', 'MESA']
     if verbose: print("\n######### Leer votos #########")
     votes = pd.read_excel(f'{election_name}/data/{election_name}.xlsx', sheet_name='Votación en Chile', skiprows = 6)
@@ -57,13 +57,13 @@ def pre_process_EM(election_name, groups = ""):
     
     if verbose: print(votes.head())
 
-    # guardar candidatos
+    # save candidates
     lista_candidatos = natsorted(list(candidatos))
     with open(f'{election_name}/output{groups}/CANDIDATOS.pickle', "wb") as handle:
         pickle.dump(lista_candidatos, handle)
 
 
-    # votantes
+    # voters
     # read excel file
     if verbose: print("\n######### Leer votantes #########")
     electors = pd.read_excel(f'{election_name}/data/{election_name}.xlsx', skiprows=6, sheet_name = 'Votantes efectivos en Chile')
@@ -102,12 +102,10 @@ def pre_process_EM(election_name, groups = ""):
     # IF YOU WANT TO GROUP BEFORE
     # electors_grouped, group_names_agg = new_group_matrix(electors[grupos].to_numpy(), group_combination) # get aggregated group names and aggregated matrix
     # electors[group_names_agg] = electors_grouped # assign aggregated groups
-    # mostrar primaras filas y todas las columnas de df electors
+
 
     # save file with electors
     electors.to_csv(f'{election_name}/output{groups}/{election_name}_ELECTORES.csv', index=False)
-    # save gruops
-    # lista_grupos = list(natsorted(grupos))
     lista_grupos = grupos.copy()
     with open(f'{election_name}/output{groups}/GRUPOS.pickle', "wb") as handle:
         pickle.dump(lista_grupos, handle)
@@ -144,7 +142,6 @@ def run_EM(election_name, groups = ""):
     nivel_agregacion_candidatos = 'REGION'
     niveles_agregacion_candidatos = votes[nivel_agregacion_candidatos].unique() # ¿ MAS DE UNA DIMENSION?
 
-    # con que mesas en conjunto se estima el "p"
     nivel_agregacion_EM = ['CIRCUNSCRIPCION ELECTORAL']
 
     dict_dfs_distritos = {}
@@ -187,10 +184,10 @@ def run_EM(election_name, groups = ""):
         
         I = len(candidatos)
 
-        # numero de votantes
+        # number of votes
         df_distrito['NUM VOTOS'] = df_distrito[candidatos].sum(axis=1)
 
-        # eliminamos mesas sin votos
+        # ballot-boxes need at least 1 vote
         df_distrito = df_distrito[df_distrito['NUM VOTOS'] > 0]
 
         df_distrito['NUM MESAS'] = -1
@@ -209,7 +206,7 @@ def run_EM(election_name, groups = ""):
             if verbose: print(f'\t{l[0]}')
             index_local = (df_distrito['CIRCUNSCRIPCION ELECTORAL'] == l[0])
             df_local = df_distrito.loc[index_local].copy()
-            if len(df_local) == 0: # no hay mesas en alguna de las bases
+            if len(df_local) == 0: # if there's no ballot-boxes
                 continue
 
             x = df_local[candidatos].to_numpy()
