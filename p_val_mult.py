@@ -63,7 +63,7 @@ def compute_p_value_m_mult_threshold(x, r, S_min, S_max, thresholds, seed=None):
             break
     return less_p / n, s
 
-def compute_pvalue_pickle(file_in, file_out, load_bar=False, S_min=2, S_max=5, parallel=False,
+def compute_pvalue_pickle(file_in, file_out, load_bar=False, S_min=2, S_max=5,
                            mu_power=5, alpha_power=7, seed=None):
     data_out = dict()
     if seed is not None:
@@ -82,35 +82,6 @@ def compute_pvalue_pickle(file_in, file_out, load_bar=False, S_min=2, S_max=5, p
 
     # Calculate thresholds only once and pass them to inner functions
     thresholds = compute_thresholds(S_min, S_max, mu_power, alpha_power)
-
-    if parallel:
-        data_parallel = []
-    current_seed = seed
-    for key, val in tqdm(data_in, 'Processing p-values', disable=not load_bar):
-        x = np.array(val["x"])
-        r = np.array(val["r"])
-        non_zero = r != 0
-        x = x[non_zero]
-        r = r[non_zero]
-        current_seed += 1
-        if parallel:
-            data_parallel.append((x, r, S_min, S_max, thresholds, current_seed))
-        else:
-            pval, trials = compute_p_value_m_mult_threshold(x, r, S_min, S_max, thresholds, seed=current_seed)
-            data_out[key] = {
-                "p_value": pval,
-                "trials": trials,
-            }
-            print(f'Key: {key}, p-value: {pval}, trials: {trials}')
-    if parallel:
-        with Pool(4) as p:
-            results = p.starmap(compute_p_value_m_mult_threshold, data_parallel)
-
-        for i, (key, val) in enumerate(data_in):
-            data_out[key] = {
-                "p_value": results[i][0],
-                "trials": results[i][1],
-            }
 
     with open(file_out, 'wb') as f:
         pickle.dump(data_out, f)

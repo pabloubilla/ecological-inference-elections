@@ -294,12 +294,12 @@ def run_EM(election_name, groups = ""):
     return 0
 
 # function that computes the p-values
-def run_pvalue(election_name, pval_parallel, groups = ""):
+def run_pvalue(election_name, groups = ""):
     print("\n######### Compute p-values #########")
     file_dict_input_pvalues = f'{election_name}/output{groups}/{election_name}_input_pvalues.pickle'
     file_dict_output_pvalues = f'{election_name}/output{groups}/{election_name}_output_pvalues.pickle'
     compute_pvalue_pickle(file_in = file_dict_input_pvalues, file_out = file_dict_output_pvalues, load_bar=True, 
-                          S_min = 2, S_max = 8, parallel=pval_parallel, seed = 123)
+                          S_min = 2, S_max = 8, seed = 123)
 
 # function that adds the p-values already computed to the dataframes
 def add_pvalues(election_name, groups = ""):
@@ -356,8 +356,6 @@ def add_pvalues(election_name, groups = ""):
 def case_group_optimization():
     groups = ""
     election_name = "2021_11_Presidencial"
-    pval_parallel = False
-
     start_total = time.time()
     
     if verbose: print('PROCESS EM')
@@ -373,7 +371,7 @@ def case_group_optimization():
 
     if verbose: print('RUN P-VAL')
     t_start = time.time()
-    run_pvalue(election_name, pval_parallel, groups = groups)
+    run_pvalue(election_name, groups = groups)
     print('Time run_pvalue: ', time.time() - t_start, ' seconds')
 
     if verbose: print('ADD P-VAL')
