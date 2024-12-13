@@ -217,9 +217,32 @@ def plot_group_stats(df_pais, election_name, output_folder, image_path):
     axs.set_xlabel('Number of Aggregated Groups (A)')
     plt.grid(False)
     plt.gca().set_facecolor('white')
-    plt.show()
     # save fig in images/elections directory
     plt.savefig(os.path.join(image_path,'boxplot_groups.pdf'), bbox_inches='tight')
+    plt.show()
+    plt.close()
+
+
+    # Plot barplot
+    group_number = df_circs.groupby(['GRUPOS']).count()[['MESA']]
+    group_number = group_number.reset_index()
+    group_number['proportion'] = np.round(group_number['MESA'] / group_number['MESA'].sum() * 100, 1)
+    group_number[['GRUPOS']] = group_number[['GRUPOS']].astype(int) 
+
+    # plot barplot, age_group_proportion vs age_groups
+    fig, ax = plt.subplots(1, 1, figsize = (7,5))
+    sns.barplot(data = group_number, x = 'GRUPOS', y = 'proportion', 
+                edgecolor='black', linewidth=1.2, color = 'lightskyblue')
+    # axis name
+    ax.set_ylabel('Proportion of Districts')
+    ax.set_xlabel('Number of Aggregated Groups (A)')
+    plt.grid(False)
+    plt.gca().set_facecolor('white')
+    plt.savefig(os.path.join(image_path,'barplot_groups.pdf'), bbox_inches='tight')
+    plt.show()
+    plt.close()
+
+
 
     with open(f'{election_name}/{output_folder}/group_count_dict.json', 'w') as fp:
         json.dump(group_count_dict, fp)
@@ -245,6 +268,7 @@ def plot_district_heatmap(df_pais, low_p, election_name, output_folder, image_di
 
     # Loop over specified regions and districts
     for region, circ, _ in low_p:
+        # print('Plotting: ', circ)
         try:
             # Load candidate and group data
             with open(f'{election_name}/{output_folder}/CANDIDATOS.pickle', 'rb') as handle:
