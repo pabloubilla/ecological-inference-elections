@@ -25,27 +25,27 @@ def merge_data(votes, electors, grupos):
     return votes.merge(electors[llave_mesa + grupos], on=llave_mesa, how='inner')
 
 def group_heatmap(df_circ, locales, grupos, cmap='Blues', trunc=0.7, output_path=None):
-    fig, ax = plt.subplots(2, int(len(locales)/2), figsize=(2*len(locales), 5), sharey=True)
+    fig, ax = plt.subplots(1, 3, figsize=(9,1.5), sharey=True)
     cbar_ax = fig.add_axes([1.01, 0.3, 0.03, 0.4])
 
     for i, l in enumerate(locales):
-        index = i//int(len(locales)/2), i%int(len(locales)/2)
+        index = i
         group_proportion = df_circ[df_circ['LOCAL'] == l][grupos].T / np.sum(df_circ[df_circ['LOCAL'] == l][grupos].T)
         im = sns.heatmap(group_proportion, ax=ax[index], xticklabels=False, yticklabels=True,
                          cmap=cmap, cbar=True, cbar_ax=cbar_ax, vmin=0, vmax=trunc,
                          cbar_kws={"shrink": 0.3})
         if trunc < 1:
             n_trunc = int(trunc*10)
-            cbar_ax.set_yticks([0.1*j for j in range(n_trunc+1)])
-            cbar_ax.set_yticklabels([f'   {0.1*j:.1f}' for j in range(n_trunc)] + [f' > {0.1*n_trunc:.1f}'])
+            cbar_ax.set_yticks([0.1, 0.3, 0.5, 0.7])
+            cbar_ax.set_yticklabels(['0.1', '0.3', '0.5'] + [f' > {0.1*n_trunc:.1f}'])
         cbar_ax.set_title('Proportion', fontsize=10, pad=10)
 
-        if index[1] == 0:
-            ax[index].set_yticklabels(grupos)
+        if i == 0:
+        #     ax[index].set_yticklabels(grupos)
             ax[index].set_ylabel('Age Range')
-            ax[index].tick_params(left=True)
-        else:
-            ax[index].tick_params(left=False)
+        #     ax[index].tick_params(left=True)
+            # else:
+        #     ax[index].tick_params(left=False)
 
         title = '\n'.join(textwrap.wrap(f'{l}', width=30))
         ax[index].text(0.5, 1.08, title, transform=ax[index].transAxes, va='center', ha='center')
@@ -199,13 +199,12 @@ def main():
     df = merge_data(votes, electors, grupos)
 
     # # Plot heatmaps
-    # circ = 'PUENTE ALTO'
-    # electors_circ = electors[electors['CIRCUNSCRIPCION ELECTORAL'] == circ]
-    # locales = electors_circ['LOCAL'].unique()
-    # loc_used = ['COLEGIO PARTICULAR PADRE JOSE KENTENICH', 'COLEGIO NUEVA ERA SIGLO XXI SEDE PUENTE ALTO',
-    #             'LICEO INDUSTRIAL MUNICIPALIZADO A 116 LOCAL: 1', 'COLEGIO MAIPO LOCAL: 2',
-    #             'COLEGIO COMPANIA DE MARIA PUENTE ALTO LOCAL: 2', 'ESCUELA LOS ANDES LOCAL: 1']
-    # group_heatmap(electors_circ, loc_used, grupos, cmap='Blues', output_path='images/group_distribution_example.pdf')
+    circ = 'PUENTE ALTO'
+    electors_circ = electors[electors['CIRCUNSCRIPCION ELECTORAL'] == circ]
+    locales = electors_circ['LOCAL'].unique()
+    loc_used = ['COLEGIO PARTICULAR PADRE JOSE KENTENICH', 'COLEGIO MAIPO LOCAL: 2',
+                'COLEGIO COMPANIA DE MARIA PUENTE ALTO LOCAL: 2']
+    group_heatmap(electors_circ, loc_used, grupos, cmap='Blues', output_path='images/group_distribution_example.pdf')
 
     # # Plot probabilities
     circs = ['EL GOLF', 'SALTOS DEL LAJA']
