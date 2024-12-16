@@ -56,20 +56,25 @@ def group_heatmap(df_circ, locales, grupos, cmap='Blues', trunc=0.7, output_path
         fig.savefig(output_path, bbox_inches='tight')
     plt.show()
 
+
+
+
 def plot_probabilities(df, candidatos, grupos, circs, candidates_used, group_combinations_list, output_path=None):
-    candidate_label = ['Candidate A', 'Candidate B', 'Candidate C']
+    candidate_label = ['A', 'B', 'C']
     markers = ['o', 'v', 's']
     linestyles = ['-', '--', '-.']
 
-    fig = plt.figure(constrained_layout=True, figsize=(12, 7))
-    subfigs = fig.subfigures(nrows=3, ncols=1, height_ratios=[3, 3, 1])
+    # fig = plt.figure(constrained_layout=True, figsize=(12, 7))
+    fig = plt.figure(constrained_layout=True, figsize=(10, 4))
+
+    subfigs = fig.subfigures(nrows=2, ncols=2, width_ratios=[10, 1])
 
     for i, circ in enumerate(circs):
         x = df.loc[df['CIRCUNSCRIPCION ELECTORAL'] == circ, candidatos].values
         b = df.loc[df['CIRCUNSCRIPCION ELECTORAL'] == circ, grupos].values
         M = len(x)
-        subfigs[i].suptitle(f'\n {circ} (B = {M})')
-        axs = subfigs[i].subplots(nrows=1, ncols=2, sharey=True)
+        subfigs[i,0].suptitle(f'\n {circ} (B = {M})', fontsize = 10)
+        axs = subfigs[i,0].subplots(nrows=1, ncols=2, sharey=True)
 
         for j, group_combinations in enumerate(group_combinations_list):
             b_new, group_names = new_group_matrix(b, group_combinations)
@@ -82,24 +87,27 @@ def plot_probabilities(df, candidatos, grupos, circs, candidates_used, group_com
                 axs[j].plot(p_est[:, c], label=candidate_label[c_ix], marker=markers[c_ix], linestyle=linestyles[c_ix])
 
             axs[j].set_xticks(range(len(group_names)), group_names)
-            axs[j].text(0.8, 0.9, f'Mean Log-likelihood: {np.round(ll, 3)}',
+            axs[j].text(0.5, 0.9, f'Mean Log-likelihood: {np.round(ll, 3)}',
                         horizontalalignment='center', verticalalignment='center', transform=axs[j].transAxes,
                         bbox=dict(facecolor='white', alpha=0.5))
             axs[0].set_ylim([-0.02, 1.02])
             if j == 0:
                 axs[j].set_ylabel('Probability')
 
-    axs_label = subfigs[2].subplots(nrows=1, ncols=1)
+    axs_label = subfigs[0,1].subplots(nrows=1, ncols=1)
     for c_ix, c in enumerate(candidates_used):
-        axs_label.plot([0, 0], [0, 0], label=candidate_label[c_ix], marker=markers[c_ix], linestyle=linestyles[c_ix])
+        axs_label.plot([], [], label=candidate_label[c_ix], marker=markers[c_ix], linestyle=linestyles[c_ix])
     axs_label.set_frame_on(False)
     axs_label.xaxis.set_visible(False)
     axs_label.yaxis.set_visible(False)
-    axs_label.legend(loc='center', ncol=3)
+    axs_label.legend(loc='lower center', bbox_to_anchor = (0.5,-.8), title = 'Candidate')
 
     if output_path:
         plt.savefig(output_path, bbox_inches='tight')
     plt.show()
+
+
+
 
 def plot_ll_vs_std(df, candidatos, grupos, circs, group_combinations_list, output_path = None):
     colors = ['green', 'orange', 'purple']
@@ -190,16 +198,16 @@ def main():
     votes, electors, candidatos, grupos = load_data(votes_path, electors_path, candidates_path, groups_path)
     df = merge_data(votes, electors, grupos)
 
-    # Plot heatmaps
-    circ = 'PUENTE ALTO'
-    electors_circ = electors[electors['CIRCUNSCRIPCION ELECTORAL'] == circ]
-    locales = electors_circ['LOCAL'].unique()
-    loc_used = ['COLEGIO PARTICULAR PADRE JOSE KENTENICH', 'COLEGIO NUEVA ERA SIGLO XXI SEDE PUENTE ALTO',
-                'LICEO INDUSTRIAL MUNICIPALIZADO A 116 LOCAL: 1', 'COLEGIO MAIPO LOCAL: 2',
-                'COLEGIO COMPANIA DE MARIA PUENTE ALTO LOCAL: 2', 'ESCUELA LOS ANDES LOCAL: 1']
-    group_heatmap(electors_circ, loc_used, grupos, cmap='Blues', output_path='images/group_distribution_example.pdf')
+    # # Plot heatmaps
+    # circ = 'PUENTE ALTO'
+    # electors_circ = electors[electors['CIRCUNSCRIPCION ELECTORAL'] == circ]
+    # locales = electors_circ['LOCAL'].unique()
+    # loc_used = ['COLEGIO PARTICULAR PADRE JOSE KENTENICH', 'COLEGIO NUEVA ERA SIGLO XXI SEDE PUENTE ALTO',
+    #             'LICEO INDUSTRIAL MUNICIPALIZADO A 116 LOCAL: 1', 'COLEGIO MAIPO LOCAL: 2',
+    #             'COLEGIO COMPANIA DE MARIA PUENTE ALTO LOCAL: 2', 'ESCUELA LOS ANDES LOCAL: 1']
+    # group_heatmap(electors_circ, loc_used, grupos, cmap='Blues', output_path='images/group_distribution_example.pdf')
 
-    # Plot probabilities
+    # # Plot probabilities
     circs = ['EL GOLF', 'SALTOS DEL LAJA']
     group_combinations_list = [[[0], [1], [2], [3], [4], [5], [6], [7]],
                                 [[0, 1], [2, 3, 4], [5, 6, 7]]]
@@ -207,15 +215,15 @@ def main():
     plot_probabilities(df, candidatos, grupos, circs, candidates_used, group_combinations_list, 
                        output_path='images/group_probabilities_example.pdf')
 
-    # Plot ll vs std
-    circs = ['CANCURA', 'EL BELLOTO', 'PROVIDENCIA']
-    group_combinations_list = [[[0,1,2,3,4,5,6,7]],
-                    [[0,1,2,3],[4,5,6,7]],
-                    [[0,1],[2,3],[4,5],[6,7]],
-                    [[0,1],[2],[3],[4],[5],[6,7]],
-                    [[0],[1],[2],[3],[4],[5],[6],[7]]]
-    plot_ll_vs_std(df, candidatos, grupos, circs, group_combinations_list, 
-                   output_path = 'images/ll_vs_std_example.pdf')
+    # # Plot ll vs std
+    # circs = ['CANCURA', 'EL BELLOTO', 'PROVIDENCIA']
+    # group_combinations_list = [[[0,1,2,3,4,5,6,7]],
+    #                 [[0,1,2,3],[4,5,6,7]],
+    #                 [[0,1],[2,3],[4,5],[6,7]],
+    #                 [[0,1],[2],[3],[4],[5],[6,7]],
+    #                 [[0],[1],[2],[3],[4],[5],[6],[7]]]
+    # plot_ll_vs_std(df, candidatos, grupos, circs, group_combinations_list, 
+    #                output_path = 'images/ll_vs_std_example.pdf')
 
 if __name__ == '__main__':
     main()
