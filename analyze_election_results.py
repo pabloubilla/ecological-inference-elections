@@ -191,7 +191,7 @@ def plot_group_stats(df_pais, election_name, output_folder, image_path):
     age_group_proportion = age_group_count / n_circs
 
     # plot barplot, age_group_proportion vs age_groups
-    fig, ax = plt.subplots(1, 1, figsize=(5,3))
+    fig, ax = plt.subplots(1, 1, figsize=(7,5))
     ax.bar(age_groups, age_group_proportion,  
             edgecolor='k', alpha = 0.7, color = 'skyblue')
 
@@ -208,7 +208,7 @@ def plot_group_stats(df_pais, election_name, output_folder, image_path):
 
 
     ### Plot boxplot
-    fig, axs = plt.subplots(figsize = (5,3))
+    fig, axs = plt.subplots(figsize = (7,5))
     sns.boxplot(data = df_circs[['GRUPOS', 'MESA']].dropna().astype(int), 
                 x = 'GRUPOS', y = 'MESA', color = 'skyblue',
                 ax = axs, linewidth=1.2, linecolor='black')
@@ -230,7 +230,7 @@ def plot_group_stats(df_pais, election_name, output_folder, image_path):
     group_number[['GRUPOS']] = group_number[['GRUPOS']].astype(int) 
 
     # plot barplot, age_group_proportion vs age_groups
-    fig, ax = plt.subplots(1, 1, figsize = (5,3))
+    fig, ax = plt.subplots(1, 1, figsize = (7,5))
     sns.barplot(data = group_number, x = 'GRUPOS', y = 'proportion', 
                 edgecolor='black', linewidth=1.2, color = 'lightskyblue')
     # axis name
