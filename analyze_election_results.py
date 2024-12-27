@@ -191,7 +191,7 @@ def plot_group_stats(df_pais, election_name, output_folder, image_path):
     age_group_proportion = age_group_count / n_circs
 
     # plot barplot, age_group_proportion vs age_groups
-    fig, ax = plt.subplots(1, 1, figsize=(7, 5))
+    fig, ax = plt.subplots(1, 1, figsize=(7, 4))
     ax.bar(age_groups, age_group_proportion,  
             edgecolor='k', alpha = 0.7, color = 'skyblue')
 
@@ -208,7 +208,7 @@ def plot_group_stats(df_pais, election_name, output_folder, image_path):
 
 
     ### Plot boxplot
-    fig, axs = plt.subplots(figsize = (5,3))
+    fig, axs = plt.subplots(figsize = (5,2.5))
     sns.boxplot(data = df_circs[['GRUPOS', 'MESA']].dropna().astype(int), 
                 x = 'GRUPOS', y = 'MESA', color = 'skyblue',
                 ax = axs, linewidth=1.2, linecolor='black')
@@ -217,6 +217,9 @@ def plot_group_stats(df_pais, election_name, output_folder, image_path):
     axs.set_xlabel('Number of Aggregated Groups (A)')
     plt.grid(False)
     plt.gca().set_facecolor('white')
+    # truncate y axis
+    axs.set_ylim(0, 700)
+
     # save fig in images/elections directory
     plt.savefig(os.path.join(image_path,'boxplot_groups_poster.pdf'), bbox_inches='tight')
     plt.show()
@@ -230,7 +233,7 @@ def plot_group_stats(df_pais, election_name, output_folder, image_path):
     group_number[['GRUPOS']] = group_number[['GRUPOS']].astype(int) 
 
     # plot barplot, age_group_proportion vs age_groups
-    fig, ax = plt.subplots(1, 1, figsize = (5,3))
+    fig, ax = plt.subplots(1, 1, figsize = (5,2.5))
     sns.barplot(data = group_number, x = 'GRUPOS', y = 'proportion', 
                 edgecolor='black', linewidth=1.2, color = 'lightskyblue')
     # axis name
@@ -267,7 +270,7 @@ def plot_district_heatmap(df_pais, low_p, election_name, output_folder, image_di
 
 
     # Loop over specified regions and districts
-    for region, circ, _ in low_p:
+    for region, circ, _ in [('DE VALPARAISO','EL BELLOTO','_')]:
         # print('Plotting: ', circ)
         try:
             # Load candidate and group data
@@ -299,7 +302,7 @@ def plot_district_heatmap(df_pais, low_p, election_name, output_folder, image_di
             mesa_smallest = df_circ_pval[df_circ_pval['P-VALOR'] == df_circ_pval['P-VALOR'].min()].iloc[0]
             
             # Sample random subset and add mesa with smallest p-value if missing
-            df_heatmap = df_circ.sample(10, random_state=seed)
+            df_heatmap = df_circ.sample(6, random_state=seed)
             if mesa_smallest['MESA'] not in df_heatmap['MESA'].values:
                 df_heatmap = pd.concat([df_heatmap, df_circ[df_circ['MESA'] == mesa_smallest['MESA']]], ignore_index=True)
             
@@ -350,7 +353,7 @@ def plot_district_heatmap(df_pais, low_p, election_name, output_folder, image_di
 
 
             # Heatmap 4: p-value
-            ax[3].set_title('p-value', fontsize=8)
+            ax[3].set_title('log10 p-value', fontsize=8)
             sns.heatmap(df_heatmap[['P-VALOR']], cmap='Purples_r', cbar=False,
                         annot=True, fmt='.1e', annot_kws={'fontsize': 8}, ax=ax[3],
                         xticklabels=False, norm=colors.LogNorm(vmin=10**(max_pval - 1), vmax=1))
