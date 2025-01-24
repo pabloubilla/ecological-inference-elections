@@ -239,6 +239,8 @@ kast_df = pd.DataFrame(kast_heatmap.T, columns=AGE_GROUPS, index=regions)
 gdf = gdf.merge(boric_df.add_prefix('Boric_'), left_on='Matched_Region', right_index=True, how='left')
 gdf = gdf.merge(kast_df.add_prefix('Kast_'), left_on='Matched_Region', right_index=True, how='left')
 
+
+
 # ======================== PLOT HEATMAP ========================
 def plot_candidate_heatmaps(candidate_prefix, title_prefix):
     fig, axes = plt.subplots(1, len(AGE_GROUPS), figsize=(20, 7))
@@ -258,7 +260,92 @@ def plot_candidate_heatmaps(candidate_prefix, title_prefix):
 
     plt.show()
 
-# Plot Heatmaps for Each Candidate
-plot_candidate_heatmaps('Boric', 'Support for Gabriel Boric')
-# plot_candidate_heatmaps('Kast', 'Support for José Antonio Kast')
 
+def plot_candidate_heatmaps_combined(gdf, age_groups, candidates, cmap='YlOrRd', vmin=0, vmax=0.5,
+                                     file_path = 'images/region_map_agegroups.png'):
+    """
+    Plots heatmaps for multiple candidates in a single figure with a shared colorbar.
+
+    Args:
+        gdf: GeoDataFrame containing the data.
+        age_groups: List of age group strings to plot.
+        candidates: List of candidate prefixes (e.g., ['Boric', 'Kast']).
+        cmap: Colormap for the heatmaps.
+        vmin, vmax: Color scale limits for the heatmaps.
+    """
+    n_candidates = len(candidates)
+    n_age_groups = len(age_groups)
+    
+    fig, axes = plt.subplots(
+        n_candidates, n_age_groups, figsize=(20, 20),
+        constrained_layout=True, gridspec_kw={'wspace': 0, 'hspace': 0.2}
+    )
+    
+    # If there's only one candidate, ensure axes is 2D
+    if n_candidates == 1:
+        axes = np.expand_dims(axes, axis=0)
+
+    for row, candidate in enumerate(candidates):
+        for col, age_group in enumerate(age_groups):
+            column = f'{candidate}_{age_group}'
+            ax = axes[row, col]
+            gdf.plot(
+                column=column, cmap=cmap, legend=False, edgecolor='black',
+                vmin=vmin, vmax=vmax, ax=ax, linewidth=0.5
+            )
+            # ax.set_title(f'{age_group}', fontsize=10)
+            # ax.set_axis_off()
+            # aspect equal
+            ax.set_aspect('equal')
+
+            ax.set_aspect(0.7) # if lower value then it will be more stretched
+
+            # restrict axis
+            ax.set_xlim(1e7 * -0.85, gdf['geometry'].bounds['maxx'].max())
+            # set y limit as 0.96 of the maxx
+            ax.set_ylim(gdf['geometry'].bounds['miny'].min(), gdf['geometry'].bounds['maxy'].max()*0.95)
+   
+            # Hide axis lines
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['left'].set_visible(False)
+            ax.spines['bottom'].set_visible(False)
+            
+            # Customize axis visibility
+            ax.set_xticks([])
+            ax.set_yticks([])
+            if col == 0:  # Only set y-axis labels for the first column
+                ax.set_ylabel(candidate, fontsize=12, labelpad=10)
+
+            ax.set_xlabel(age_group, fontsize=12, labelpad=10)
+
+    # Add shared colorbar
+    # cax = fig.add_axes([0.92, 0.15, 0.02, 0.7])  # Position: [left, bottom, width, height]
+    cax = fig.add_axes([0.92, 0.3, 0.02, 0.4])
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=vmin, vmax=vmax))
+    sm._A = []  # Dummy variable for the colorbar
+    cbar = fig.colorbar(sm, cax=cax)
+    cbar.set_label("Voting Probability", fontsize=12)
+    fig.colorbar(sm, cax=cax)
+
+    # no white space
+    # plt.tight_layout()
+
+    # savefig
+    plt.savefig(file_path, dpi = 300)
+
+    plt.close()
+
+    # plt.show()
+
+
+# AGE_GROUPS = ['18-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+']
+AGE_GROUPS = ['20-29','40-49', '60-69']
+candidates = ['Boric', 'Kast']
+
+# cmaps to try
+# 'YlOrRd', 'YlGn', 'YlGnBu', 'YlOrBr', 'OrRd', 'Oranges', 'Reds', 'Greens', 'Blues'
+plot_candidate_heatmaps_combined(
+    gdf, age_groups=AGE_GROUPS, candidates=candidates,
+    cmap='YlOrRd', vmin=0, vmax=0.45
+)
