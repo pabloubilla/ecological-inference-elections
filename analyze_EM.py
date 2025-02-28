@@ -5,6 +5,7 @@ import sys
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from matplotlib import ticker
 
 # function that read the instances results and return a dataframe
 def read_results():
@@ -653,7 +654,9 @@ def plot_EM_error_boxplot():
    
 
 def plot_EM_time():
-    ## TODO: 10 al lado, numeros completos (sin potencia) 
+
+    add_error_bars = True
+
     with_replace = False
     with_replace_str = '_with_replace' if with_replace else ''
     method_order = ['full', f'simulate_100{with_replace_str}', f'simulate_1000{with_replace_str}', 'cdf', 'pdf', 'mult']
@@ -665,7 +668,11 @@ def plot_EM_time():
     df.loc[df['end'] == 0, 'time'] = np.nan
 
     # Compute the mean time grouped by J, M, G, I, and method
-    df_time = df.groupby(['J', 'M', 'G', 'I', 'method'])['time'].mean().reset_index()
+    # df_time = df.groupby(['J', 'M', 'G', 'I', 'method'])['time'].mean().reset_index()
+    # compute mean and std
+    df_time = df.groupby(['J', 'M', 'G', 'I', 'method'])['time'].agg(['mean', 'std', 'min', 'max']).reset_index()
+    # rename columns
+    df_time = df_time.rename(columns={'mean': 'time', 'std': 'std_time'})
 
     # Round values to 3 decimals
     df_time['time'] = df_time['time'].round(3)
@@ -682,14 +689,21 @@ def plot_EM_time():
 
     df_filtered['C'] = pd.Categorical(df_filtered['C'], categories=[2, 3, 4, 5, 10], ordered=True)
 
+    # map categories to 0,1,2,3,4
+    df_filtered['C_order'] = df_filtered['C'].cat.codes
 
     # Plot settings
     g_values = df_filtered['G'].unique()
-    fig, axes = plt.subplots(1, len(g_values), figsize=(15, 5), sharey=True)
+    fig, axes = plt.subplots(1, len(g_values), figsize=(8, 4), sharey=True)
 
     # linestyles
-    markers = ['o' ,'s']
-    lines = ['-', '--', '-.']
+    # markers = ['*' ,'o', 'v']
+    # lines = ['-', 'dotted']
+    # markers = ['X','D','o']
+    markers = ['_']
+    colors = ['tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown']
+    # color error slightly darker
+
 
     for i, g in enumerate(g_values):
         ax = axes[i]
@@ -697,13 +711,44 @@ def plot_EM_time():
         
         for idx, (method, method_label) in enumerate(zip(method_order, method_names)):
             df_method = df_g[df_g['method'] == method]
-            ax.plot(
-                df_method['C'], 
+            # ax.plot(
+            #     df_method['C_order'], 
+            #     df_method['time'], 
+            #     marker=markers[idx % len(markers)],  # Assign marker cyclically if needed
+            #     linestyle=lines[idx % len(lines)],   # Assign line style cyclically if needed
+            #     color=colors[idx],
+            #     label=method_label,
+            #     # remove fill
+            #     markerfacecolor='none',
+            #     markersize=7
+            # )
+            # facecolor = 'none' if idx%2 == 0 else colors[idx]
+            facecolor = colors[idx]
+            ax.scatter(
+                df_method['C_order'], 
                 df_method['time'], 
+                color=colors[idx],
                 marker=markers[idx % len(markers)],  # Assign marker cyclically if needed
-                linestyle=lines[idx % len(lines)],   # Assign line style cyclically if needed
-                label=method_label
+                label=method_label,
+                # remove fill
+                facecolors=facecolor,
+                s=20,
+                alpha = 0.8
             )
+
+            # add error bars
+            if add_error_bars:
+                ax.errorbar(
+                    df_method['C_order'], 
+                    df_method['time'], 
+                    yerr=df_method['std_time'],
+                    # yerr = [df_method['min'], df_method['max']],
+                    fmt='none',
+                    capsize=0,
+                    capthick=4,
+                    linewidth=1,
+                    color=colors[idx], 
+                    alpha = 0.8)
         
         ax.set_title(f'G = {g}')
         ax.set_xlabel('C')
@@ -713,14 +758,32 @@ def plot_EM_time():
         # Only show legend in the last plot
         if i == len(g_values) - 1:
             ax.legend()
+            # locate outside 
+            ax.legend(bbox_to_anchor=(1.15, 1))
 
     # log scale
     for ax in axes:
         ax.set_yscale('log')
+        # display numbers without scientific notation
+        ax.yaxis.set_major_formatter(ticker.StrMethodFormatter("{x:g}")  )
+
+
+        # # grab xmin and lower it one power y
+        # ymin, ymax = ax.get_ylim()
+        # ax.set_ylim(ymin/10, ymax)
+
+        
+
+
 
     # 2,3,4,5,10 ticks for C
     for ax in axes:
-        ax.set_xticks([2, 3, 4, 5, 10])
+        # give names to ticks
+        ax.set_xticks(range(5))
+        ax.set_xticklabels(['2', '3', '4', '5', '10'])
+
+        # ax.set_xticks(['2', '3', '4', '5', '10'])      
+     
 
 
     plt.tight_layout()

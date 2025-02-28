@@ -236,8 +236,8 @@ boric_df = pd.DataFrame(boric_heatmap.T, columns=AGE_GROUPS, index=regions)
 kast_df = pd.DataFrame(kast_heatmap.T, columns=AGE_GROUPS, index=regions)
 
 # Merge with GeoDataFrame
-gdf = gdf.merge(boric_df.add_prefix('Boric_'), left_on='Matched_Region', right_index=True, how='left')
-gdf = gdf.merge(kast_df.add_prefix('Kast_'), left_on='Matched_Region', right_index=True, how='left')
+gdf = gdf.merge(boric_df.add_prefix('Gabriel Boric_'), left_on='Matched_Region', right_index=True, how='left')
+gdf = gdf.merge(kast_df.add_prefix('Jose A. Kast_'), left_on='Matched_Region', right_index=True, how='left')
 
 
 
@@ -261,7 +261,7 @@ def plot_candidate_heatmaps(candidate_prefix, title_prefix):
     plt.show()
 
 
-def plot_candidate_heatmaps_combined(gdf, age_groups, candidates, cmap='YlOrRd', vmin=0, vmax=0.5,
+def plot_candidate_heatmaps_combined(gdf, age_groups, candidates, cmap='YlOrRd', vmin=0.1, vmax=0.5,
                                      file_path = 'images/region_map_agegroups.png'):
     """
     Plots heatmaps for multiple candidates in a single figure with a shared colorbar.
@@ -277,7 +277,7 @@ def plot_candidate_heatmaps_combined(gdf, age_groups, candidates, cmap='YlOrRd',
     n_age_groups = len(age_groups)
     
     fig, axes = plt.subplots(
-        n_candidates, n_age_groups, figsize=(20, 20),
+        n_candidates, n_age_groups, figsize=(8,8),
         constrained_layout=True, gridspec_kw={'wspace': 0, 'hspace': 0.2}
     )
     
@@ -315,9 +315,9 @@ def plot_candidate_heatmaps_combined(gdf, age_groups, candidates, cmap='YlOrRd',
             ax.set_xticks([])
             ax.set_yticks([])
             if col == 0:  # Only set y-axis labels for the first column
-                ax.set_ylabel(candidate, fontsize=12, labelpad=10)
+                ax.set_ylabel(candidate, fontsize=14, labelpad=10)
 
-            ax.set_xlabel(age_group, fontsize=12, labelpad=10)
+            ax.set_xlabel(age_group, fontsize=14, labelpad=10)
 
     # Add shared colorbar
     # cax = fig.add_axes([0.92, 0.15, 0.02, 0.7])  # Position: [left, bottom, width, height]
@@ -332,7 +332,7 @@ def plot_candidate_heatmaps_combined(gdf, age_groups, candidates, cmap='YlOrRd',
     # plt.tight_layout()
 
     # savefig
-    plt.savefig(file_path, dpi = 300)
+    plt.savefig(file_path, dpi = 400)
 
     plt.close()
 
@@ -341,7 +341,7 @@ def plot_candidate_heatmaps_combined(gdf, age_groups, candidates, cmap='YlOrRd',
 
 # AGE_GROUPS = ['18-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80+']
 AGE_GROUPS = ['20-29','40-49', '60-69']
-candidates = ['Boric', 'Kast']
+candidates = ['Gabriel Boric', 'Jose A. Kast']
 
 # cmaps to try
 # 'YlOrRd', 'YlGn', 'YlGnBu', 'YlOrBr', 'OrRd', 'Oranges', 'Reds', 'Greens', 'Blues'

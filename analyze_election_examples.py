@@ -56,8 +56,143 @@ def group_heatmap(df_circ, locales, grupos, cmap='Blues', trunc=0.7, output_path
         fig.savefig(output_path, bbox_inches='tight')
     plt.show()
 
-def plot_probabilities(df, candidatos, grupos, circs, candidates_used, group_combinations_list, output_path=None):
-    candidate_label = ['Candidate A', 'Candidate B', 'Candidate C']
+
+def group_aggregation_heatmap(df_circ, candidatos, grupos, trunc=0.7, output_path=None):
+
+    n_heatmaps = 3
+
+    n_bootstrap = 20
+    
+
+    group_combinations_list = [ [[0], [1], [2], [3], [4], [5], [6], [7]],
+                                 [[0, 1], [2, 3, 4, 5], [6, 7]],
+                                [[0, 1, 2], [3, 4], [5, 6, 7]]   
+                                ]
+
+    len_combinations = [len(x) for x in group_combinations_list]
+    print('len_combinations: ', len_combinations)
+
+    fig, ax = plt.subplots(n_heatmaps, 3, figsize=(9, 5), width_ratios=[6, 3, 3],
+                           height_ratios=len_combinations)
+     
+                            
+    
+    X = df_circ[candidatos].values
+    b = df_circ[grupos].values
+
+    cmap1 = sns.color_palette("Blues", as_cmap=True)
+    cmap2 = sns.color_palette("Purples", as_cmap=True)
+    cmap3 = sns.color_palette("Reds", as_cmap=True)
+
+
+
+
+
+    for i, group_combinations in enumerate(group_combinations_list):
+        b_new, group_names = new_group_matrix(b, group_combinations)
+        group_proportion_i = b_new.T / np.sum(b_new.T, axis=0)
+        print('SHAPE: ', group_proportion_i.shape)
+        sns.heatmap(group_proportion_i, ax=ax[i,0], xticklabels=False, yticklabels=True,
+                            cmap=cmap1, cbar=False, vmin=0, vmax=.7)
+        ax[i,0].set_yticklabels(group_names)
+        ax[i,0].set_ylabel('Age Range')
+        ax[i,0].tick_params(left=True, rotation=0)
+        if i == n_heatmaps - 1: ax[i,0].set_xlabel('Ballot-box')
+
+
+        print('b sum: ', np.sum(b_new.T, axis=0))
+        print('b: ', b_new[:5,0])
+
+
+        # std of rows (groups)
+        # std = np.std(group_proportion_i, axis=1)
+        # sns.heatmap(std.reshape(-1,1), ax=ax[i,1], xticklabels=False, yticklabels=False,
+        #                     cmap=cmap2, cbar=False, vmin=0, vmax=.3, annot=True, fmt=".2f")
+
+        # Extract the heatmap grid dimensions
+        # Get y-axis positions of the heatmap rectangles
+        heatmap_yticks = ax[i, 0].get_yticks()
+        # heatmap_yticks = heatmap_yticks[:-1]  # Remove the last tick (out of bounds)
+        print('Heatmap y-ticks:', heatmap_yticks)
+  
+
+
+
+        # Standard deviation Waterfall Plot (Rotated)
+        std = np.std(group_proportion_i, axis=1)
+        print('std: ', std)
+        cumulative_std = np.cumsum(std)  # Reverse for a top-to-bottom waterfall
+        
+
+        bar_positions = np.arange(len(std)) + .5
+        # reverse
+        bar_positions = bar_positions[::-1]
+        print('bar_positions: ', bar_positions)
+
+        # ax[i, 1].barh(bar_positions, std, left=cumulative_std - std, color="purple",
+        #               width = 1)
+        for j in range(len(std)):
+            ax[i, 1].barh(bar_positions[j], std[j], left=cumulative_std[j] - std[j], 
+                          color="purple", height=1, alpha = 0.8)
+        # plot a big bar of the total sum
+        # ax[i,1].barh(bar_positions[-1], np.sum(std), left=0, color="purple", height=len(std)*2, alpha = 0.2)
+
+        # remove yaxis
+        ax[i, 1].yaxis.set_visible(False)
+        # set ylim
+        ax[i, 1].set_ylim([0, len(std)])
+        # set xlim
+        ax[i, 1].set_xlim([0, .65])
+        # if i is not last hide ticks
+        if i != n_heatmaps - 1: ax[i, 1].set_xticklabels([])
+
+
+        
+        # get p_bootstrap
+        p_bootstrap = bootstrap(X, b_new, S=n_bootstrap, seed=123)
+        p_std = np.std(p_bootstrap, axis=0)
+        p_std_max = np.max(p_std, axis = 1)
+        # plot p_std_max
+        # ax[i, 2].barh(bar_positions, p_std_max, color="red", height = 1)
+        for j in range(len(std)):
+            ax[i, 2].barh(bar_positions[j], p_std_max[j], color="red", height = .8, alpha = 0.7,
+                          linewidth = 1, edgecolor = 'black')
+        ax[i, 2].set_xlim([0, 0.13])
+        # set 4 ticks
+        ax[i, 2].set_xticks([0, 0.05, 0.1])
+        
+        ax[i, 2].yaxis.set_visible(False)
+        ax[i, 2].set_ylim([0, len(std)])
+        # dashed line 0.5
+        ax[i, 2].axvline(x=0.05, color='black', linestyle='--', linewidth=1)
+    
+        if i != n_heatmaps - 1: ax[i, 2].set_xticklabels([])
+
+        # sns.heatmap(p_std_max.reshape(-1,1), ax=ax[i,2], xticklabels=False, yticklabels=False,
+        #                     cmap=cmap3, cbar=False, vmin=0, vmax=.1, annot=True, fmt=".4f")
+        if i == 0:
+            ax[i,0].set_title('Proportion', fontsize = 10)
+            ax[i,1].set_title('Proportion sd', fontsize = 10)
+            ax[i,2].set_title('Max sd(p)', fontsize = 10)
+      
+
+    fig.subplots_adjust(wspace=0.15, right=0.95)
+                        
+    plt.show()
+
+    if output_path:
+        fig.savefig(output_path, bbox_inches='tight')
+    plt.show()
+
+
+def plot_probabilities(df, candidatos, grupos, circs, candidates_used, 
+                       group_combinations_list, output_path=None, anonymous = False):
+    if anonymous:
+        candidate_label = ['Candidate A', 'Candidate B', 'Candidate C']
+    else:
+        print(candidatos)
+        print(candidates_used)
+        candidate_label = np.array(candidatos)[candidates_used]
     markers = ['o', 'v', 's']
     linestyles = ['-', '--', '-.']
 
@@ -177,9 +312,13 @@ def plot_ll_vs_std(df, candidatos, grupos, circs, group_combinations_list, outpu
     plt.savefig('images/ll_std_example.pdf', bbox_inches='tight')
     plt.close()
 
-
-
 def main():
+
+    plot_heatmaps = False
+    plot_aggregation_heatmaps = True
+    plot_prob_example = True
+    plot_ll_vs_std = False
+
     # File paths
     votes_path = '2021_11_Presidencial/output/2021_11_Presidencial_VOTOS.csv'
     electors_path = '2021_11_Presidencial/output/2021_11_Presidencial_ELECTORES.csv'
@@ -191,31 +330,43 @@ def main():
     df = merge_data(votes, electors, grupos)
 
     # Plot heatmaps
-    circ = 'PUENTE ALTO'
-    electors_circ = electors[electors['CIRCUNSCRIPCION ELECTORAL'] == circ]
-    locales = electors_circ['LOCAL'].unique()
-    loc_used = ['COLEGIO PARTICULAR PADRE JOSE KENTENICH', 'COLEGIO NUEVA ERA SIGLO XXI SEDE PUENTE ALTO',
-                'LICEO INDUSTRIAL MUNICIPALIZADO A 116 LOCAL: 1', 'COLEGIO MAIPO LOCAL: 2',
-                'COLEGIO COMPANIA DE MARIA PUENTE ALTO LOCAL: 2', 'ESCUELA LOS ANDES LOCAL: 1']
-    group_heatmap(electors_circ, loc_used, grupos, cmap='Blues', output_path='images/group_distribution_example.pdf')
+    if plot_heatmaps:
+        circ = ''
+        electors_circ = electors[electors['CIRCUNSCRIPCION ELECTORAL'] == circ]
+        locales = electors_circ['LOCAL'].unique()
+        loc_used = ['COLEGIO PARTICULAR PADRE JOSE KENTENICH', 'COLEGIO NUEVA ERA SIGLO XXI SEDE PUENTE ALTO',
+                    'LICEO INDUSTRIAL MUNICIPALIZADO A 116 LOCAL: 1', 'COLEGIO MAIPO LOCAL: 2',
+                    'COLEGIO COMPANIA DE MARIA PUENTE ALTO LOCAL: 2', 'ESCUELA LOS ANDES LOCAL: 1']
+        group_heatmap(electors_circ, loc_used, grupos, cmap='Blues', output_path='images/group_distribution_example.pdf')
+
+
+    if plot_aggregation_heatmaps:
+        circ = 'CERRILLOS'
+        electors_circ = df[df['CIRCUNSCRIPCION ELECTORAL'] == circ]
+        group_aggregation_heatmap(electors_circ, candidatos, grupos,
+                                  output_path='images/group_aggregation_heatmap.pdf')
 
     # Plot probabilities
-    circs = ['EL GOLF', 'SALTOS DEL LAJA']
-    group_combinations_list = [[[0], [1], [2], [3], [4], [5], [6], [7]],
-                                [[0, 1], [2, 3, 4], [5, 6, 7]]]
-    candidates_used = [2, 3, 5]
-    plot_probabilities(df, candidatos, grupos, circs, candidates_used, group_combinations_list, 
-                       output_path='images/group_probabilities_example.pdf')
+    if plot_prob_example:
+        circs = ['EL GOLF', 'SALTOS DEL LAJA']
+        group_combinations_list = [[[0], [1], [2], [3], [4], [5], [6], [7]],
+                                    [[0, 1], [2, 3, 4], [5, 6, 7]]]
+        candidates_used = [2, 3, 5]
+        plot_probabilities(df, candidatos, grupos, circs, candidates_used, group_combinations_list, 
+                        output_path='images/group_probabilities_example.pdf')
+        
+    
 
     # Plot ll vs std
-    circs = ['CANCURA', 'EL BELLOTO', 'PROVIDENCIA']
-    group_combinations_list = [[[0,1,2,3,4,5,6,7]],
-                    [[0,1,2,3],[4,5,6,7]],
-                    [[0,1],[2,3],[4,5],[6,7]],
-                    [[0,1],[2],[3],[4],[5],[6,7]],
-                    [[0],[1],[2],[3],[4],[5],[6],[7]]]
-    plot_ll_vs_std(df, candidatos, grupos, circs, group_combinations_list, 
-                   output_path = 'images/ll_vs_std_example.pdf')
+    if plot_ll_vs_std:
+        circs = ['CANCURA', 'EL BELLOTO', 'PROVIDENCIA']
+        group_combinations_list = [[[0,1,2,3,4,5,6,7]],
+                        [[0,1,2,3],[4,5,6,7]],
+                        [[0,1],[2,3],[4,5],[6,7]],
+                        [[0,1],[2],[3],[4],[5],[6,7]],
+                        [[0],[1],[2],[3],[4],[5],[6],[7]]]
+        plot_ll_vs_std(df, candidatos, grupos, circs, group_combinations_list, 
+                    output_path = 'images/ll_vs_std_example.pdf')
 
 if __name__ == '__main__':
     main()

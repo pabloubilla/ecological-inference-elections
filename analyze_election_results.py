@@ -12,6 +12,8 @@ from scipy.stats import binom
 import json
 from group_opt import new_group_matrix, bootstrap
 
+SHOW_PLOTS = False
+
 def load_data(election_name, output_folder, threshold):
     """Load primary election data."""
     df_pais = pd.read_csv(f'{election_name}/{output_folder}/{election_name}_PAIS.csv')
@@ -50,7 +52,8 @@ def plot_ballotbox_histogram(df_pais, image_path, truncate = 500):
     plt.grid(False)  # Turn off the grid
 
     plt.savefig(image_path, bbox_inches='tight')
-    plt.show()
+
+    if SHOW_PLOTS: plt.show()
     plt.close()
 
 
@@ -77,7 +80,89 @@ def calculate_pvalue_ranges(df_pais, image_path, log_pvalue_precision, write = F
             f.write(latex_str)
 
 
-def calculate_probabilities(df_pais, circs, circ_labels, election_name, 
+
+def pvalue_histplot(df_pais, image_path=None, log_pvalue_precision=-6):
+    """Plot p-value distribution and save as PDF if image_path is provided."""
+    
+    plt.figure(figsize=(8, 5))
+    
+
+    sns.histplot(df_pais['LOG P-VALOR'],
+                 binwidth = 1, color='skyblue', edgecolor='black', linewidth=1.2,
+                 label = 'Observed')
+
+    # Generate uniform values and apply log transformation
+    n_samples = len(df_pais)
+    # x = np.random.uniform(0, 1, n_samples)
+    x = np.arange(1, n_samples + 1) / n_samples
+    xlog = np.log10(x)
+
+    sns.histplot(xlog, binwidth = 1, color='orange', edgecolor='black', linewidth=1.2,
+                 label = 'Expected')
+    
+    # Add labels and title
+    plt.xlabel('Log10 P-value')
+    plt.ylabel('Number of Ballot-boxes')
+
+    # log the y axis
+    plt.yscale('log')
+    
+    # Add legend for clarity
+    plt.legend()
+    
+    # Save plot if path is provided
+    if image_path:
+        plt.savefig(image_path, bbox_inches='tight')
+    
+    if SHOW_PLOTS: plt.show()
+    plt.close()
+
+
+def pvalue_distplot(df_pais, image_path=None, log_pvalue_precision=-6):
+    """Plot p-value distribution and save as PDF if image_path is provided."""
+    
+    plt.figure(figsize=(8, 5))
+    
+
+    # Improved KDE plot with clipping to avoid negative values
+    sns.kdeplot(df_pais['LOG P-VALOR'], 
+                color='red', linewidth=2, fill=False, alpha=0.8, 
+                label="Observed", clip=(None, 0), cumulative=True,
+                linestyle = '--')
+
+    # Generate uniform values and apply log transformation, avoiding log(0)
+    # x = np.random.uniform(0, 1, 100000)
+    n_samples = 100000
+    x = np.arange(1, n_samples + 1) / n_samples
+    xlog = np.log10(x)
+    
+    # Plot expected (uniform) distribution with clipping
+    sns.kdeplot(xlog, 
+                color='blue', linewidth=2, fill=False, alpha=0.8, 
+                label="Expected", clip=(None, 0), cumulative=True,
+                linestyle = '-')
+
+    # Add labels and title
+    plt.xlabel('Log10 P-value')
+    plt.ylabel('CDF')
+
+    # logscale y axis
+    plt.yscale('log')
+
+    # plt.title('P-value Density Distribution')
+
+    # Add legend for clarity
+    plt.legend()
+    
+    # Save plot if path is provided
+    # if image_path:
+    #     plt.savefig(image_path, bbox_inches='tight')
+
+    if SHOW_PLOTS: plt.show()
+    plt.close()
+
+
+def plot_probabilities(df_pais, circs, circ_labels, election_name, 
                             output_folder, image_path, anonymous=True):
     """Calculate and save voting probabilities heatmap with optional candidate anonymization."""
     
@@ -142,16 +227,165 @@ def calculate_probabilities(df_pais, circs, circ_labels, election_name,
     plt.grid(False)
     plt.gca().set_facecolor('white')
     plt.savefig(image_path, bbox_inches='tight')
-    plt.show()
+    if SHOW_PLOTS: plt.show()
     plt.close(fig)
 
+
+def plot_stacked_probabilities(df_pais, circs, circ_labels, election_name, 
+                            output_folder, image_path, anonymous=False):    
+    """Calculate and save voting probabilities stacked bar plot with optional candidate anonymization."""
+
+    ## TODO: remove axis except necessary
+    ## Try traspose
+    
+    # A: Artés
+    # B: MEO
+    # C: Parisi
+    # D: Yasna
+    # E: Boric
+    # F: Sichel
+    # G: Kast
+    # H: Nulo/Blanco
+
+
+    # Load candidate names
+    with open(f'{election_name}/{output_folder}/CANDIDATOS.pickle', 'rb') as handle:
+        CANDIDATOS = np.array(pickle.load(handle))
+        print(CANDIDATOS)
+    
+    # Define custom display order for candidates
+    # order_candidatos = [2, 3, 1, 6, 7, 4, 0, 5]  # Adjust this list based on required display order
+    order_candidatos = [0, 4, 1, 7, 2, 6, 3, 5]  # Adjust this list based on required display order
+    
+    # Define labels based on anonymity setting
+    if anonymous:
+        LABEL_CANDIDATOS = [chr(65 + i) for i in range(len(CANDIDATOS))]  # A, B, C, ...
+    else:
+        LABEL_CANDIDATOS = CANDIDATOS[order_candidatos]
+
+    # Adjust specific candidate names if not anonymized
+    if not anonymous:
+        LABEL_CANDIDATOS = np.where(LABEL_CANDIDATOS == 'NULO BLANCO', 'NULL/BLANK', LABEL_CANDIDATOS)
+        LABEL_CANDIDATOS = np.where(LABEL_CANDIDATOS == 'MARCO ENRIQUEZ-OMINAMI', 'MARCO E.-OMINAMI', LABEL_CANDIDATOS)
+        LABEL_CANDIDATOS = np.where(LABEL_CANDIDATOS == 'JOSE ANTONIO KAST', 'JOSE A. KAST', LABEL_CANDIDATOS)
+        LABEL_CANDIDATOS = np.where(LABEL_CANDIDATOS == 'FRANCO ALDO PARISI', 'FRANCO PARISI', LABEL_CANDIDATOS)
+
+    # Set color palette
+    # palette = sns.color_palette("tab10", len(LABEL_CANDIDATOS))
+    # palette = sns.color_palette("husl", len(LABEL_CANDIDATOS))
+    palette = sns.color_palette("Set3", len(LABEL_CANDIDATOS))
+
+
+    # Create subplots for each district
+    fig, axes = plt.subplots(1, len(circs), figsize=(10, 4), sharey=True, 
+                             width_ratios=[7+.5,5+.5,4+.5,2+.5]) # width manually for now (should be the number of)
+
+    for ix, circ in enumerate(circs):
+        region = df_pais[df_pais['CIRCUNSCRIPCION ELECTORAL'] == circ]['REGION'].iloc[0]
+        df_probs = pd.read_csv(f'{election_name}/{output_folder}/{region}/{circ}/P_{circ}.csv', index_col=0).T   # .round(2)
+        df_probs = df_probs.iloc[order_candidatos]
+
+        df_probs.T.plot(kind='bar', stacked=True, ax=axes[ix], color=palette, width=.95, edgecolor='grey', linewidth=0.5)
+        
+        circ_size = df_pais[df_pais['CIRCUNSCRIPCION ELECTORAL'] == circ]['NUM MESAS'].iloc[0]
+        axes[ix].set_title(f'{circ_labels[ix]} ($B = {circ_size})', fontsize=12)
+        axes[ix].set_xlabel('Age Ranges', fontsize=12)
+        if ix == 0:
+            axes[ix].set_ylabel('Probability', fontsize=12)
+        axes[ix].tick_params(axis='x', labelrotation=90)
+        axes[ix].legend().remove()
+
+    # y ticks
+    y_ticks = np.arange(0, 1.1, 0.2)
+    # set for first plot
+    axes[0].set_yticks(y_ticks)
+
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, LABEL_CANDIDATOS, title='Candidates', bbox_to_anchor=(0.5, -0.05), loc='center', ncol=len(LABEL_CANDIDATOS))
+
+    plt.tight_layout()
+    plt.savefig(image_path, bbox_inches='tight')
+    if SHOW_PLOTS: plt.show()
+    plt.close()
+
+def plot_stacked_probabilities_v2(df_pais, circs, circ_labels, election_name, 
+                            output_folder, image_path, anonymous=False):    
+    """Calculate and save voting probabilities stacked bar plot with optional candidate anonymization."""
+
+    # Load candidate names
+    with open(f'{election_name}/{output_folder}/CANDIDATOS.pickle', 'rb') as handle:
+        CANDIDATOS = np.array(pickle.load(handle))
+
+    
+    # Define custom display order for candidates
+    order_candidatos = [0, 4, 2, 7, 1, 6, 3, 5]  # Adjust based on display order
+    
+    # Define labels based on anonymity setting
+    if anonymous:
+        LABEL_CANDIDATOS = [chr(65 + i) for i in range(len(CANDIDATOS))]  # A, B, C, ...
+    else:
+        LABEL_CANDIDATOS = CANDIDATOS[order_candidatos]
+        LABEL_CANDIDATOS = np.where(LABEL_CANDIDATOS == 'NULO BLANCO', 'NULL/BLANK', LABEL_CANDIDATOS)
+        LABEL_CANDIDATOS = np.where(LABEL_CANDIDATOS == 'MARCO ENRIQUEZ-OMINAMI', 'MARCO E.-OMINAMI', LABEL_CANDIDATOS)
+        LABEL_CANDIDATOS = np.where(LABEL_CANDIDATOS == 'JOSE ANTONIO KAST', 'JOSE A. KAST', LABEL_CANDIDATOS)
+        LABEL_CANDIDATOS = np.where(LABEL_CANDIDATOS == 'FRANCO ALDO PARISI', 'FRANCO PARISI', LABEL_CANDIDATOS)
+    
+    # Set color palette
+    palette = sns.color_palette("Set3", len(LABEL_CANDIDATOS))
+    
+    # Create subplots for each district
+    fig, axes = plt.subplots(len(circs), 1, figsize=(7, 6), sharex=True,
+                             height_ratios=[7+.5,5+.5,4+.5,2+.5])
+    
+    for ix, circ in enumerate(circs):
+        region = df_pais[df_pais['CIRCUNSCRIPCION ELECTORAL'] == circ]['REGION'].iloc[0]
+        df_probs = pd.read_csv(f'{election_name}/{output_folder}/{region}/{circ}/P_{circ}.csv', index_col=0).T
+        df_probs = df_probs.iloc[order_candidatos]
+
+        # inverse the order of columns
+        df_probs = df_probs.iloc[:, ::-1]
+        
+        # Transpose the data to align probabilities on x-axis and age groups on y-axis
+        df_probs.T.plot(kind='barh', stacked=True, ax=axes[ix], color=palette, width=0.9, edgecolor='grey', linewidth=0.5)
+        
+        circ_size = df_pais[df_pais['CIRCUNSCRIPCION ELECTORAL'] == circ]['NUM MESAS'].iloc[0]
+        axes[ix].set_title(f'{circ_labels[ix]} ($B = {circ_size}$)', fontsize=10, loc='center', pad=.2)
+        if ix == len(circs) - 1:
+            # axes[ix].set_xlabel('Probability', fontsize=12)
+            # set ticks from 0 to 1
+            x_ticks = np.arange(0, 1.1, 0.2)
+            axes[ix].set_xticks(x_ticks)
+        
+        # Remove all spines except bottom x-axis for the last subplot
+        axes[ix].spines['top'].set_visible(False)
+        axes[ix].spines['right'].set_visible(False)
+        axes[ix].spines['left'].set_visible(False)
+        if ix != len(circs) - 1:
+            axes[ix].spines['bottom'].set_visible(False)
+            # remove x tick
+            axes[ix].tick_params(axis='x', bottom=False)
+         
+
+        
+        
+        axes[ix].tick_params(axis='y', left=False)
+        axes[ix].legend().remove()
+    
+    # Add legend vertically to the right
+    handles, labels = axes[0].get_legend_handles_labels()
+    fig.legend(handles, LABEL_CANDIDATOS, title='Candidates', bbox_to_anchor=(1.12, 0.5), loc='center', ncol=1, title_fontsize=8, fontsize=8)
+    
+    plt.tight_layout()
+    plt.savefig(image_path, bbox_inches='tight')
+    if SHOW_PLOTS: plt.show()
+    plt.close()
 
 
 
 def plot_group_stats(df_pais, election_name, output_folder, image_path):
     """Calculate aggregated group statistics and plot histogram without saving intermediate files."""
 
-    sns.set(style="whitegrid")
+    sns.set_theme(style="whitegrid")
 
     # Extract unique regions and electoral districts
     circs = df_pais[['REGION', 'CIRCUNSCRIPCION ELECTORAL']].drop_duplicates().to_numpy()
@@ -203,7 +437,7 @@ def plot_group_stats(df_pais, election_name, output_folder, image_path):
     plt.grid(False)
     plt.gca().set_facecolor('white')
     plt.savefig(os.path.join(image_path, 'group_stats_histograms.pdf'), bbox_inches='tight')
-    plt.show()
+    if SHOW_PLOTS: plt.show()
     plt.close()
 
 
@@ -219,7 +453,7 @@ def plot_group_stats(df_pais, election_name, output_folder, image_path):
     plt.gca().set_facecolor('white')
     # save fig in images/elections directory
     plt.savefig(os.path.join(image_path,'boxplot_groups.pdf'), bbox_inches='tight')
-    plt.show()
+    if SHOW_PLOTS: plt.show()
     plt.close()
 
 
@@ -239,7 +473,7 @@ def plot_group_stats(df_pais, election_name, output_folder, image_path):
     plt.grid(False)
     plt.gca().set_facecolor('white')
     plt.savefig(os.path.join(image_path,'barplot_groups.pdf'), bbox_inches='tight')
-    plt.show()
+    if SHOW_PLOTS: plt.show()
     plt.close()
 
 
@@ -401,16 +635,32 @@ def main():
     df_pais, df_lowp = load_data(election_name, output_folder, threshold)
 
     # Perform analyses
-    plot_ballotbox_histogram(df_pais, image_path=os.path.join(images_dir, 'ballotboxes.pdf'))
-    calculate_pvalue_ranges(df_pais, image_path=os.path.join(images_dir, 'pvalue_ranges.tex'),
-                            log_pvalue_precision = log_pvalue_precision, write = False)
-    calculate_probabilities(df_pais, circs=['PROVIDENCIA', 'PLAZA EGANA', 'VALLENAR', 'FRUTILLAR'],
+    # plot_ballotbox_histogram(df_pais, image_path=os.path.join(images_dir, 'ballotboxes.pdf'))
+    # calculate_pvalue_ranges(df_pais, image_path=os.path.join(images_dir, 'pvalue_ranges.tex'),
+    #                         log_pvalue_precision = log_pvalue_precision, write = False)
+
+    pvalue_histplot(df_pais, image_path=os.path.join(images_dir, 'pvalue_histogram.pdf'),
+                    log_pvalue_precision = log_pvalue_precision)
+    pvalue_distplot(df_pais, image_path=os.path.join(images_dir, 'pvalue_distribution.pdf'), 
+                    log_pvalue_precision = log_pvalue_precision)
+
+    # plot_probabilities(df_pais, circs=['PROVIDENCIA', 'PLAZA EGANA', 'VALLENAR', 'FRUTILLAR'],
+    #                         circ_labels=['Providencia', 'Plaza Egaña', 'Vallenar', 'Frutillar'],
+    #                         election_name=election_name, output_folder=output_folder,
+    #                         image_path=os.path.join(images_dir, 'probability_results.pdf'))
+    
+    plot_stacked_probabilities(df_pais, circs=['PROVIDENCIA', 'PLAZA EGANA', 'VALLENAR', 'FRUTILLAR'],
                             circ_labels=['Providencia', 'Plaza Egaña', 'Vallenar', 'Frutillar'],
                             election_name=election_name, output_folder=output_folder,
-                            image_path=os.path.join(images_dir, 'probability_results.pdf'))
-    plot_group_stats(df_pais, election_name, output_folder, images_dir)
-    plot_district_heatmap(df_pais, df_lowp, election_name, output_folder, images_dir, 
-                            max_pval=threshold, seed=123)
+                            image_path=os.path.join(images_dir, 'stacked_probability_results.pdf'))
+    plot_stacked_probabilities_v2(df_pais, circs=['PROVIDENCIA', 'PLAZA EGANA', 'VALLENAR', 'FRUTILLAR'],
+                            circ_labels=['Providencia', 'Plaza Egaña', 'Vallenar', 'Frutillar'],
+                            election_name=election_name, output_folder=output_folder,
+                            image_path=os.path.join(images_dir, 'stacked_probability_results_v2.pdf'))
+
+    # plot_group_stats(df_pais, election_name, output_folder, images_dir)
+    # plot_district_heatmap(df_pais, df_lowp, election_name, output_folder, images_dir, 
+    #                         max_pval=threshold, seed=123)
 
 if __name__ == "__main__":
     main()
