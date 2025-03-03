@@ -3,6 +3,13 @@ import time
 from time import perf_counter
 from tqdm import tqdm
 import pickle
+# import pickle and json
+import pickle
+import json
+
+
+
+import matplotlib.pyplot as plt
 
 '''Main EM algorithm functions to estimate probability'''
 
@@ -158,8 +165,16 @@ def EM_algorithm(X, b, p_est, q_method, convergence_value = 0.001, max_iteration
         with open(dict_file, 'wb') as handle:
             pickle.dump(dict_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+
+
     previous_Q = -np.inf
     previous_ll = -np.inf
+
+    ll_list = []
+    q_list = []
+
+    epsilon = 1e-16
+
     dict_results['end'] = 0 # not converged yet until the time/iteration limit
     for i in tqdm(range(1,max_iterations+1), disable = not load_bar):
         # start_iteration = time.time()
@@ -170,15 +185,18 @@ def EM_algorithm(X, b, p_est, q_method, convergence_value = 0.001, max_iteration
     
         # check convergence of p    
         
-        if (np.abs(p_new-p_est) < convergence_value).all():
-            dict_results['end'] = 1
-            if verbose: print(f'Convergence took {i} iterations and {run_time} seconds.')
+        # if (np.abs(p_new-p_est) < convergence_value).all():
+        #     dict_results['end'] = 1
+        #     if verbose: print(f'Convergence took {i} iterations and {run_time} seconds.')
 
         # update time
         run_time += perf_counter() - start_iteration
 
         # update Q
         log_p_new = np.where(p_new > 0, np.log(p_new), 0)
+
+
+        # log_p_est = np.where(p_est > 0, np.log(p_est), 0)
         Q = np.sum(b * np.sum(q * log_p_new, axis = 2))
         dif_Q = Q - previous_Q
         dict_results['dif_Q'] = dif_Q
@@ -186,31 +204,41 @@ def EM_algorithm(X, b, p_est, q_method, convergence_value = 0.001, max_iteration
 
         # compute the other term of the expected log likelihood
         log_q = np.where(q > 0, np.log(q), 0)
-        E_log_q = np.sum(b * np.sum(log_q * q, axis = 2))
+
+
+
+        E_log_q = np.sum(b * np.sum(q * log_q, axis = 2))
         dict_results['q'] = q
         dict_results['E_log_q'] = E_log_q
 
         # save expected log likelihood
         dict_results['ll'] = Q - dict_results['E_log_q']
-        
+        dif_ll = dict_results['ll'] - previous_ll
+
+
 
         if verbose:
             print('-'*50)
             print('iteration: ', i)
             print(np.round(p_new,4))
-            print('Δ: ', np.max(np.abs(p_new-p_est)))
-            print('Q: ', Q)
-            print('ll: ', dict_results['ll'])
+            print('Δ:       \t', np.max(np.abs(p_new-p_est)))
+            print('Q:       \t', Q)
+            print('E_log_q: \t', E_log_q)
+            print('ll:      \t', dict_results['ll'])
+            print('dif_Q:   \t', dif_Q)
+            print('dif_ll:  \t', dif_ll)
+        
             # print('a: ',np.sum(q * log_p_est, axis = 2))
             print('-'*50)
         # print(np.round(p_est[1,6],5))
         
         # check if the expected Likelihood is not increasing
-        if previous_ll - dict_results['ll'] > 0 :
-            p_new = p_est.copy()
-            dict_results['end'] = 2
-            if verbose: print(f'll decreased; took {i} iterations and {run_time} seconds.')
+        # if previous_ll - dict_results['ll'] > 0 :
+        #     p_new = p_est.copy()
+        #     dict_results['end'] = 2
+        #     if verbose: print(f'll decreased; took {i} iterations and {run_time} seconds.')
         previous_ll = dict_results['ll'].copy()
+        previous_Q = Q.copy()
 
         # save results for iteration
         dict_results['p_est'] = p_new
@@ -224,24 +252,32 @@ def EM_algorithm(X, b, p_est, q_method, convergence_value = 0.001, max_iteration
         # update p
         p_est = p_new.copy()
 
-        if dict_results['end'] > 0:
-            break
+        ll_list.append(dict_results['ll'])
+        q_list.append(Q)
+
+        # if dict_results['end'] > 0:
+        #     break
     
 
 
 
-    if save_dict:
-        with open(dict_file, 'wb') as handle:
-            pickle.dump(dict_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    # if save_dict:
+    #     with open(dict_file, 'wb') as handle:
+    #         pickle.dump(dict_results, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    if dict_results['end'] == 0:
-        if verbose: print(f'Did not reach convergence after {i} iterations and {run_time}. \n')
+    # if dict_results['end'] == 0:
+    #     if verbose: print(f'Did not reach convergence after {i} iterations and {run_time}. \n')
     
     # fix if one group doesnt have voters
     agg_b = np.sum(b, axis = 0)
     p_new[agg_b == 0,:] = np.sum(X, axis = 0) / np.sum(X)
 
-    return p_new, i, run_time
+    # plot
+
+    return p_new, i, run_time, ll_list, q_list
 
 
 # (g,i) compute estimate of p using EM algorithm with parameters X and b
+
+# 
+

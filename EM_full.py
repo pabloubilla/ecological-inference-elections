@@ -5,7 +5,7 @@ import time
 from helper_functions import *
 from tqdm import tqdm
 from EM_algorithm import EM_algorithm, get_p_est
-
+import json
 
 #@profile    
 def compute_qm_list(n_m, p, b_m, I_size, G_size):
@@ -106,4 +106,83 @@ def EM_full(X, b, p_est = None, convergence_value = 0.0001, max_iterations = 100
 
 
 
+
+if __name__ == '__main__':
+
+    import matplotlib.pyplot as plt
+    # Example
+    # instances/J100_M50_G2_I2_L50_seed1.json
+    # read
+
+    ll_lists = []
+    q_lists = []
+
+    for s in [15]:
+        with open(f'instances/J100_M50_G2_I2_L50_seed{s}.json') as f:
+            data = json.load(f)
+
+        X = np.array(data['n'])
+        b = np.array(data['b'])
+
+        
+
+        print(X.shape)
+        print(b.shape)
+
+        p_est = get_p_est(X, b, 'uniform')
+
+
+        p_est, i, run_time, ll_list, q_list = EM_full(X, b, p_est, max_iterations = 20,
+                                        p_method = 'group_proportional', load_bar = True, verbose = True,
+                                        dict_results = {}, save_dict = False, dict_file = None)
+        
+        ll_lists.append(ll_list)
+        q_lists.append(q_list)
+
+
+
+
+    fig = plt.figure(figsize=(10,30))
+    for i, ll_list in enumerate(ll_lists):
+        plt.plot(ll_list, label=f'seed {i+1}', alpha=0.5)
+    plt.title('ll_list')
+    plt.legend()
+    plt.show()
+
+    ll_array = np.array(ll_lists)
+    q_array = np.array(q_lists)
+
+    # # plot average
+    # ll_avg = np.mean(ll_array, axis=0)
+    # plt.plot(ll_avg)
+    # plt.title('ll_avg')
+    # plt.show()
+
+    # delta ll (llt - ll_{t-1})
+    ll_delta = ll_array[:,1:] - ll_array[:,:-1]
+    # plot
+    plt.plot(ll_delta.T, alpha=0.7)
+    plt.title('ll_delta')
+    plt.ylim(-.5,.5)
+    # hline
+    plt.axhline(0, color='black', lw=1, ls='--')
+    plt.show()
+
+
+
+    # Q delta
+    q_delta = q_array[:,1:] - q_array[:,:-1]
+    # plot
+    plt.plot(q_delta.T, alpha=0.7)
+    plt.title('q_delta')
+    # hline
+    plt.axhline(0, color='black', lw=1, ls='--')
+    plt.show()
+
+    # fig = plt.figure(figsize=(10,30))
+    # for i, q_list in enumerate(q_lists):
+    #     plt.plot(q_list, label=f'seed {i+1}', alpha=0.5)
+    # plt.title('q_list')
+    # # plt.legend()
+    # plt.show()
 
