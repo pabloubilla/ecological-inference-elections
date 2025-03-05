@@ -85,6 +85,8 @@ def compute_p(q, b):
     return num / dem
 
 
+
+
 # (g,i) compute estimate of p using EM algorithm with parameters X and b 
 # def EM_full(X, b, convergence_value = 0.0001, max_iterations = 100, 
 #                  p_method = 'proportional', load_bar = True, verbose = True,
@@ -117,7 +119,7 @@ if __name__ == '__main__':
     ll_lists = []
     q_lists = []
 
-    for s in [15]:
+    for s in range(1,21):
         with open(f'instances/J100_M50_G2_I2_L50_seed{s}.json') as f:
             data = json.load(f)
 
@@ -132,7 +134,7 @@ if __name__ == '__main__':
         p_est = get_p_est(X, b, 'uniform')
 
 
-        p_est, i, run_time, ll_list, q_list = EM_full(X, b, p_est, max_iterations = 20,
+        p_est, i, run_time, ll_list, q_list = EM_full(X, b, p_est, max_iterations = 50,
                                         p_method = 'group_proportional', load_bar = True, verbose = True,
                                         dict_results = {}, save_dict = False, dict_file = None)
         
@@ -169,15 +171,19 @@ if __name__ == '__main__':
     plt.show()
 
 
+    print(ll_delta)
 
-    # Q delta
-    q_delta = q_array[:,1:] - q_array[:,:-1]
-    # plot
-    plt.plot(q_delta.T, alpha=0.7)
-    plt.title('q_delta')
-    # hline
-    plt.axhline(0, color='black', lw=1, ls='--')
-    plt.show()
+
+
+
+    # # Q delta
+    # q_delta = q_array[:,1:] - q_array[:,:-1]
+    # # plot
+    # plt.plot(q_delta.T, alpha=0.7)
+    # plt.title('q_delta')
+    # # hline
+    # plt.axhline(0, color='black', lw=1, ls='--')
+    # plt.show()
 
     # fig = plt.figure(figsize=(10,30))
     # for i, q_list in enumerate(q_lists):

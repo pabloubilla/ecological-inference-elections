@@ -7,7 +7,7 @@ import pickle
 import pickle
 import json
 
-
+from helper_functions import *
 
 import matplotlib.pyplot as plt
 
@@ -36,6 +36,67 @@ def get_p_est(X, b, p_method):
         p_est[np.isnan(p_est)] = 0
     return p_est
 
+def compute_Tm_list(n_m, p, b_m, I_size, G_size):
+    K = [[] for f in range(G_size+1)]
+    K_dict = {}
+    H = [[] for f in range(G_size+1)]
+    T = [[] for f in range(G_size+1)]
+    #U = [[] for f in range(G_size+1)]
+    K[-1] = np.array(combinations(I_size,0))
+    for k_ind, k in enumerate(K[-1]):
+            K_dict[-1,tuple(k)] = k_ind 
+    T[-1] = np.full(len(K[-1]), 1)
+    #U[-1] = np.full((len(K[-1]),G_size,I_size), 1)
+    lgac_n = [sum([np.log(max(k, 1)) for k in range(n + 1)]) for n in range(np.max(b_m) + 1)]
+    log_p = np.log(p)
+    hlg_p_gin = [[[n * log_p[g,i] for n in range(np.max(b_m) + 1)] for i in range(I_size)] for g in range(G_size)]
+    hb_gn = [[n / b_m[g] if b_m[g] > 0 else 0.0 for n in range(max(b_m) + 1)] for g in range(G_size)]
+    b_m_cum = [np.sum(b_m[:f+1]) for f in range(G_size)]
+    for f in range(G_size):
+        K[f] = np.array(combinations_filtered(I_size,b_m_cum[f],n_m)) 
+        for k_ind, k in enumerate(K[f]):
+            K_dict[f,tuple(k)] = k_ind 
+        H[f] = np.array(combinations_filtered(I_size,b_m[f],n_m))
+        T[f] = np.zeros(len(K[f]))
+        #U[f] = np.zeros((len(K[f]),f+1,I_size))
+
+        for k_ind in range(len(K[f])):
+            k = K[f][k_ind]
+            T_k = 0.0
+            U_k = np.zeros((f+1,I_size))
+            for h_ind in range(len(H[f])):
+                h = H[f][h_ind]
+                if all(h<=k):
+                    #k_ind_before = find_tuple(K[f-1],k-h)
+                    if f == 0:
+                        k_ind_before = 0
+                    else:
+                        k_ind_before = K_dict[f-1, tuple(k-h)]
+                        #k_ind_before = find_tuple(K[f-1],k-h)
+                        #k_ind_before = get_index(k-h,n_m,b_m_cum[f-1],I_size)
+                    a = np.exp(lgac_n[b_m[f]] + np.sum([hlg_p_gin[f][i][h[i]] - lgac_n[h[i]] for i in range(I_size)]))
+                    T_k += T[f-1][k_ind_before]*a
+                    # for i in range(I_size):
+                    #     a_h_b = a * hb_gn[f][h[i]]
+                    #     for g in range(f):
+                    #         U_k[g,i] += U[f-1][k_ind_before,g,i]*a
+                    #     if h[i] > 0:
+                    #         U_k[f,i] += T[f-1][k_ind_before]*a_h_b
+
+                T[f][k_ind] = T_k
+                #U[f][k_ind] = U_k 
+                        
+    return T[G_size-1][0]
+
+
+def compute_ll(n, p, b):
+    # sum over ln(T) for each ballot_box
+    ll = 0
+    for m in range(n.shape[0]):
+        ll += np.log(compute_Tm_list(n[m], p, b[m], n.shape[1], b.shape[1]))
+
+
+    return ll
 
 
 
@@ -212,7 +273,10 @@ def EM_algorithm(X, b, p_est, q_method, convergence_value = 0.001, max_iteration
         dict_results['E_log_q'] = E_log_q
 
         # save expected log likelihood
-        dict_results['ll'] = Q - dict_results['E_log_q']
+        # dict_results['ll'] = Q - dict_results['E_log_q']
+
+        dict_results['ll'] = compute_ll(X, p_new, b) # new version
+
         dif_ll = dict_results['ll'] - previous_ll
 
 
